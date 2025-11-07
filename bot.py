@@ -2,7 +2,7 @@ import logging
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder,
+    Application,
     CommandHandler,
     MessageHandler,
     ContextTypes,
@@ -45,7 +45,7 @@ async def plan_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     info = db.get_user(user.id)
     await update.message.reply_text(
-        f"Ваш план: {info.get('plan')} | Лимит сообщений: {info.get('limit')} | Чатов: {info.get('chats')}"
+        f"Ваш план: {info.get('plan')} | Лимит сообщений: {info.get('limit_value')} | Чатов: {info.get('chats')}"
     )
 
 
@@ -63,9 +63,9 @@ async def analyze_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     link = text.strip()
     info = db.get_user(user.id)
-    await update.message.reply_text(f"Запущен парсинг {link}... (лимит {info['limit']} сообщений)")
+    await update.message.reply_text(f"Запущен парсинг {link}... (лимит {info.get('limit_value')} сообщений)")
 
-    limit = info['limit']
+    limit = info.get('limit_value')
     msgs = parser.parse_from_link(link, limit)
     await update.message.reply_text(f"Парсинг завершён: {len(msgs)} сообщений. Анализирую...")
 
@@ -132,7 +132,7 @@ async def filter_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def main():
-    app = ApplicationBuilder().token(config.BOT_TOKEN).build()
+    app = Application.builder().token(config.BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
