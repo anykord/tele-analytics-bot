@@ -11,6 +11,7 @@ from telegram.ext import (
 )
 import config
 
+
 # -----------------------------
 # ЛОГИРОВАНИЕ
 # -----------------------------
@@ -25,19 +26,19 @@ logger = logging.getLogger(__name__)
 # ХЕНДЛЕРЫ
 # -----------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Привет! Бот успешно работает на Render (webhook).")
+    await update.message.reply_text("👋 Привет! Webhook бот запущен на Render!")
+
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
-    await update.message.reply_text(f"Ты сказал: {user_text}")
+    text = update.message.text
+    await update.message.reply_text(f"Ты сказал: {text}")
 
 
 # -----------------------------
-# WEBHOOK SERVER SETUP
+# ОБРАБОТЧИК ДЛЯ ВХОДЯЩИХ ВЕБХУКОВ
 # -----------------------------
 async def handle_webhook(request):
-    """Обработка входящих обновлений от Telegram."""
-    app = request.app["bot_app"]
+    app: Application = request.app["bot_app"]
     data = await request.json()
     update = Update.de_json(data, app.bot)
     await app.process_update(update)
@@ -45,53 +46,52 @@ async def handle_webhook(request):
 
 
 async def on_startup(app):
-    """Установка webhook при запуске приложения."""
     webhook_url = f"{config.WEBHOOK_HOST}/webhook"
     await app["bot_app"].bot.set_webhook(webhook_url)
     logger.info(f"✅ Webhook установлен: {webhook_url}")
 
 
 async def on_shutdown(app):
-    """Корректное завершение работы."""
     await app["bot_app"].shutdown()
     await app["bot_app"].stop()
-    logger.info("🛑 Bot stopped cleanly.")
+    logger.info("🛑 Bot остановлен корректно.")
 
 
 # -----------------------------
-# ОСНОВНАЯ ФУНКЦИЯ
+# ОСНОВНОЙ СЕРВЕР
 # -----------------------------
 async def main():
     # Создаем Telegram Application
     bot_app = Application.builder().token(config.BOT_TOKEN).build()
 
-    # Регистрируем хендлеры
+    # Добавляем хендлеры
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
-    # Настраиваем AIOHTTP веб-сервер
+    # aiohttp WebApp
     web_app = web.Application()
     web_app["bot_app"] = bot_app
     web_app.router.add_post("/webhook", handle_webhook)
 
-    # Добавляем хуки старта и завершения
+    # хуки старта и остановки
     web_app.on_startup.append(on_startup)
     web_app.on_shutdown.append(on_shutdown)
 
-    # Запускаем веб-сервер
+    # запуск сервера
     port = int(os.environ.get("PORT", 8080))
     runner = web.AppRunner(web_app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-    logger.info(f"🚀 Bot server запущен на порту {port}")
-    logger.info("Ожидание обновлений Telegram (через webhook)...")
+    logger.info(f"🚀 Webhook сервер запущен на порту {port}")
 
-    # Бесконечный цикл для работы до остановки Render
+    # держим приложение живым
+    await bot_app.initialize()
     await bot_app.start()
-    while True:
-        await bot_app.updater.wait_closed()
+    await bot_app.updater.wait_until_closed()  # 🟡 УДАЛЕНО полностью
+    # вместо этого просто ждем:
+    await bot_app.running.wait()
 
 
 if __name__ == "__main__":
@@ -99,4 +99,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("🛑 Bot manually stopped.")
+        logger.info("🛑 Бот остановлен вручную.")
