@@ -1,6 +1,5 @@
 # Simple aiohttp webhook receiver for Tribute payments
-import json
-import logging
+import json, logging
 from aiohttp import web
 import config
 from db import DB
@@ -32,3 +31,4 @@ def run_app():
 
 if __name__ == "__main__":
     run_app()
+

@@ -1,43 +1,29 @@
-# Tele Analytics Bot
+# Tele Analytics Bot (CSV-based)
 
-Набросок SaaS Telegram-бота для анализа чатов.
+Updated version: Google Sheets removed. Reports exported as CSV/JSON/PDF files.
 
-## Быстрый старт (локально / VPS)
-1. Клонировать проект.
-2. Создать виртуальное окружение Python 3.11+:
-   ```
+## Быстрый старт
+1. Распакуйте проект.
+2. Создайте виртуальное окружение Python 3.11+ и установите зависимости:
+   ```bash
    python -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
    ```
-3. Заполнить `config.py` или создать `.env` с ключами:
+3. Заполните `.env` или `config.py`:
    - BOT_TOKEN
-   - API_ID, API_HASH (Telethon)
+   - API_ID, API_HASH
    - OPENAI_API_KEY
-   - GOOGLE_SERVICE_FILE (путь к google.json)
    - TRIBUTE_SECRET
-   - WEBHOOK_HOST (адрес вашего сервера)
-4. Запустить вебхук (Tribute):
-   ```
+   - WEBHOOK_HOST
+4. Запустите webhook:
+   ```bash
    python webhook.py
    ```
-5. Запустить бота:
-   ```
+5. Запустите бота:
+   ```bash
    python bot.py
    ```
 
-## Деплой на Render.com
-- Создайте веб-сервис для webhook (порт 8000), командой `python webhook.py`.
-- Создайте фоновый сервис (worker) для бота `python bot.py`.
-- В ENV VARS в настройках Render добавьте ключи.
+Файлы-отчёты сохраняются в папке `reports/` и отправляются пользователю в Telegram.
 
-## @Tribute
-- Настройте вебхук на `https://<your-app>/webhook/tribute` и добавьте заголовок `X-TRIBUTE-SECRET: <TRIBUTE_SECRET>`.
-
-## Структура
-- bot.py — основной бот (polling + callback)
-- webhook.py — обработка платежей Tribute
-- utils/parser.py — Telethon парсер
-- utils/ai_analyzer.py — обёртка OpenAI
-- utils/report.py — PDF/Sheets/CSV/JSON экспорт
-- db.py — SQLite база

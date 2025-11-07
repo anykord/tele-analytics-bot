@@ -1,5 +1,4 @@
-import sqlite3
-import json
+import sqlite3, json
 class DB:
     def __init__(self, path="tele_analytics.db"):
         self.path = path
@@ -47,8 +46,8 @@ class DB:
         limit,chats = mapping.get(plan, (1000,1))
         with sqlite3.connect(self.path) as conn:
             c = conn.cursor()
-            c.execute("UPDATE users SET plan=?, limit=?, chats=?, extras=? WHERE user_id=?",
-                      (plan, limit, chats, json.dumps({}), user_id))
+            c.execute("INSERT OR REPLACE INTO users(user_id, plan, limit, chats, extras) VALUES(?,?,?,?,?)",
+                      (user_id, plan, limit, chats, json.dumps({})))
             conn.commit()
     def search_messages(self, user_id, keyword, since=None, from_user=None):
         q = "SELECT date,sender,text FROM messages_cache WHERE text LIKE ?"
@@ -72,3 +71,4 @@ class DB:
                 c.execute("INSERT INTO messages_cache(user_id,date,sender,text) VALUES(?,?,?,?)",
                           (user_id, m.get("date"), m.get("sender"), m.get("text")))
             conn.commit()
+

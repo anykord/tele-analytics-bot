@@ -1,7 +1,6 @@
-import asyncio
+import asyncio, re
 from telethon import TelegramClient
 from telethon.errors import ChannelPrivateError, ChannelInvalidError
-import re
 
 class TeleParser:
     def __init__(self, api_id, api_hash, session_name="tele_parser_session"):
@@ -35,3 +34,4 @@ class TeleParser:
 
     def parse_from_link(self, link, limit=1000):
         return asyncio.get_event_loop().run_until_complete(self._fetch(link, limit))
+

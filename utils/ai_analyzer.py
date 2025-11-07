@@ -1,5 +1,4 @@
-import openai
-import json
+import openai, json
 PROMPT_TEMPLATE = """You are an assistant that analyzes a list of telegram messages (text only).
 Input: JSON list of messages with fields: id, date, sender, text.
 Tasks:
@@ -9,6 +8,7 @@ Tasks:
 Output JSON with keys: text (human-readable short report), themes, sentiments, insights.
 Be concise.
 """
+
 class Analyzer:
     def __init__(self, openai_key):
         openai.api_key = openai_key
@@ -34,3 +34,4 @@ class Analyzer:
         except Exception:
             pass
         return out
+

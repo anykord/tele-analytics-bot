@@ -1,15 +1,17 @@
-import io, csv, json
+import os, csv, json
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 class ReportGenerator:
-    def __init__(self, google_service_file="google.json"):
-        self.google_service_file = google_service_file
+    def __init__(self):
+        pass
 
-    def to_pdf(self, title, report_text, out_path):
-        c = canvas.Canvas(out_path, pagesize=A4)
+    def to_pdf(self, title, report_text, out_dir="reports"):
+        os.makedirs(out_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = os.path.join(out_dir, f"report_{timestamp}.pdf")
+        c = canvas.Canvas(path, pagesize=A4)
         width, height = A4
         c.setFont("Helvetica", 12)
         y = height - 50
@@ -22,31 +24,25 @@ class ReportGenerator:
                 c.showPage()
                 y = height - 50
         c.save()
-        return out_path
+        return path
 
-    def to_csv(self, messages, out_path):
+    def to_csv(self, messages, out_dir="reports", title="report"):
+        os.makedirs(out_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = os.path.join(out_dir, f"{title}_{timestamp}.csv")
         keys = ["id","date","sender","text"]
-        with open(out_path, "w", encoding="utf-8-sig", newline='') as f:
+        with open(path, "w", encoding="utf-8-sig", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=keys, quoting=csv.QUOTE_ALL)
             writer.writeheader()
             for m in messages:
                 writer.writerow({k: m.get(k,"") for k in keys})
-        return out_path
+        return path
 
-    def to_json(self, messages, out_path):
-        with open(out_path, "w", encoding="utf-8") as f:
+    def to_json(self, messages, out_dir="reports", title="report"):
+        os.makedirs(out_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = os.path.join(out_dir, f"{title}_{timestamp}.json")
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(messages, f, ensure_ascii=False, indent=2)
-        return out_path
+        return path
 
-    def to_google_sheet(self, title, messages):
-        scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name(self.google_service_file, scope)
-        gc = gspread.authorize(creds)
-        sh = gc.create(title)
-        worksheet = sh.get_worksheet(0)
-        header = ["id","date","sender","text"]
-        worksheet.append_row(header)
-        for m in messages:
-            worksheet.append_row([m.get("id"), m.get("date"), m.get("sender"), m.get("text")])
-        sh.share(None, perm_type='anyone', role='reader')
-        return sh.url

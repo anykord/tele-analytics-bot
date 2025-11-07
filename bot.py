@@ -1,6 +1,4 @@
-import asyncio
-import logging
-import os
+import logging, os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from utils.parser import TeleParser
@@ -15,7 +13,7 @@ logger = logging.getLogger(__name__)
 db = DB(config.DB_PATH)
 parser = TeleParser(config.API_ID, config.API_HASH)
 analyzer = Analyzer(config.OPENAI_API_KEY)
-reporter = ReportGenerator(config.GOOGLE_SERVICE_FILE)
+reporter = ReportGenerator()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -42,16 +40,30 @@ async def analyze_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Укажите ссылку: /analyze https://t.me/yourgroup")
         return
     link = text.strip()
-    await update.message.reply_text(f"Запущен парсинг {link} ... (можно до {db.get_user(user.id)['limit']} сообщений)")
-    limit = db.get_user(user.id)['limit']
+    info = db.get_user(user.id)
+    await update.message.reply_text(f"Запущен парсинг {link} ... (можно до {info['limit']} сообщений)")
+    limit = info['limit']
     msgs = parser.parse_from_link(link, limit)
     await update.message.reply_text(f"Парсинг завершён: {len(msgs)} сообщений. Отправляю на анализ...")
-    # cache messages
     db.cache_messages(user.id, msgs)
     report = analyzer.analyze_messages(msgs, top_n=3)
-    await update.message.reply_text(report.get('text', 'Анализ готов (см. файл).'))
+    # Freemium: text in chat
+    await update.message.reply_text(report.get('text', 'Анализ готов.'))
+
+    plan = info.get('plan','freemium')
+    # If Basic -> PDF available; Pro -> CSV+JSON available
+    if plan == "basic":
+        pdf_path = reporter.to_pdf(f"Report {link}", report.get('text',''), out_dir="reports")
+        await update.message.reply_document(open(pdf_path, "rb"), caption="PDF-отчёт (Базовый план)")
+    if plan == "pro":
+        csv_path = reporter.to_csv(msgs, out_dir="reports", title="analysis")
+        json_path = reporter.to_json(msgs, out_dir="reports", title="analysis")
+        await update.message.reply_document(open(csv_path, "rb"), caption="CSV-экспорт (Расширенный)")
+        await update.message.reply_document(open(json_path, "rb"), caption="JSON-экспорт (Расширенный)")
+
+    # Offer upgrades
     buttons = [
-        [InlineKeyboardButton("Купить Базовый (PDF+Sheets) — 1500₽/мес", callback_data="buy_basic")],
+        [InlineKeyboardButton("Купить Базовый (PDF) — 1500₽/мес", callback_data="buy_basic")],
         [InlineKeyboardButton("Купить Расширенный (CSV/JSON) — 5000₽/мес", callback_data="buy_pro")],
     ]
     await update.message.reply_text("Опции:", reply_markup=InlineKeyboardMarkup(buttons))
@@ -97,3 +109,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
