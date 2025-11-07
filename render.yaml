@@ -1,0 +1,21 @@
+services:
+  - type: worker
+    name: tele-analytics-bot
+    env: python
+    runtime: python-3.11.9
+    buildCommand: "pip install --upgrade pip setuptools wheel && pip install -r requirements.txt"
+    startCommand: "python bot.py"
+    autoDeploy: true
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TRIBUTE_SECRET
+        sync: false
+      - key: WEBHOOK_HOST
+        sync: false
