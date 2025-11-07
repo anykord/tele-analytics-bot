@@ -9,7 +9,7 @@ class DB:
             c.execute("""CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
                 plan TEXT DEFAULT 'freemium',
-                limit INTEGER DEFAULT 1000,
+                limit_value INTEGER DEFAULT 1000,
                 chats INTEGER DEFAULT 1,
                 extras TEXT DEFAULT '{}'
             )""")
