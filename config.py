@@ -8,5 +8,4 @@ API_HASH = os.getenv("API_HASH", "REPLACE_API_HASH")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "REPLACE_OPENAI_KEY")
 DB_PATH = os.getenv("DB_PATH", "tele_analytics.db")
 TRIBUTE_SECRET = os.getenv("TRIBUTE_SECRET", "tribute_secret_example")
-WEBHOOK_HOST = os.getenv("WEBHOOK_HOST", "https://your-render-app.onrender.com")
-
+WEBHOOK_HOST = os.getenv("WEBHOOK_HOST", "https://tele-analytics-bot.onrender.com")
