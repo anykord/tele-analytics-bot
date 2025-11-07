@@ -1,6 +1,6 @@
 services:
-  - type: worker
-    name: tele-analytics-bot
+  - type: web
+    name: tele-analytics-bot-web
     env: python
     buildCommand: "pip install --upgrade pip setuptools wheel && pip install -r requirements.txt"
     startCommand: "python bot.py"

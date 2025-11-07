@@ -1,4 +1,5 @@
 import logging
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -27,14 +28,10 @@ reporter = ReportGenerator()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.ensure_user(user.id)
-    await update.message.reply_text(
-        "Привет! Отправь ссылку на группу/канал для анализа (или /help). Тарифы: Фримиум/Базовый/Расширенный."
-    )
+    await update.message.reply_text("Привет! Отправь ссылку на группу/канал для анализа (или /help).")
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "/analyze <link> — начать анализ\n/filter <keyword> — фильтр\n/plan — показать план\n/pay — оплатить подписку (через Tribute)"
-    )
+    await update.message.reply_text("/analyze <link> — начать анализ\n/filter <keyword> — фильтр\n/plan — показать план")
 
 async def plan_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -78,7 +75,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     if query.data == "buy_basic":
-        await query.edit_message_text("Для покупки перейдите в магазин @Tribute и оплатите план 'basic'. После оплаты бот получит webhook и активирует план.")
+        await query.edit_message_text("Для покупки перейдите в магазин @Tribute и оплатите план 'basic'.")
     elif query.data == "buy_pro":
         await query.edit_message_text("Для покупки перейдите в магазин @Tribute и оплатите план 'pro'.")
 
@@ -99,22 +96,31 @@ async def filter_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not results:
         await update.message.reply_text("Ничего не найдено.")
     else:
-        text = "\\n\\n".join([f"{r['date']} {r['sender']}: {r['text'][:300]}" for r in results[:20]])
+        text = "\n\n".join([f"{r['date']} {r['sender']}: {r['text'][:300]}" for r in results[:20]])
         await update.message.reply_text(text)
 
 def main():
-    app = Application.builder().token(config.BOT_TOKEN).build()
+    # Build application
+    application = Application.builder().token(config.BOT_TOKEN).build()
 
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("plan", plan_cmd))
-    app.add_handler(CommandHandler("analyze", analyze_cmd))
-    app.add_handler(CommandHandler("filter", filter_cmd))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.Entity("url") | (filters.TEXT & filters.Regex(r"t\\.me/")), analyze_cmd))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_cmd))
+    application.add_handler(CommandHandler("plan", plan_cmd))
+    application.add_handler(CommandHandler("analyze", analyze_cmd))
+    application.add_handler(CommandHandler("filter", filter_cmd))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.Entity("url") | (filters.TEXT & filters.Regex(r"t\.me/")), analyze_cmd))
 
-    logger.info("Бот запущен — polling режим")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Webhook settings
+    port = int(os.environ.get("PORT", "8000"))
+    host = "0.0.0.0"
+    # URL path for webhook (Telegram will POST to https://<WEBHOOK_HOST>/webhook/<token>)
+    url_path = config.BOT_TOKEN
+    webhook_url = f"{config.WEBHOOK_HOST}/webhook/{config.BOT_TOKEN}" if config.WEBHOOK_HOST else None
+
+    logger.info("Starting webhook on %s:%s, webhook_url=%s", host, port, webhook_url)
+    # Run webhook (this will set webhook with Telegram automatically)
+    application.run_webhook(listen=host, port=port, url_path=url_path, webhook_url=webhook_url, drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
